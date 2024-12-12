@@ -27,17 +27,10 @@ jobs:
       - name: Download Sys.pfx Certificate
         run: Invoke-WebRequest -Uri "https://github.com/snikms/torbo/raw/refs/heads/main/Sys.pfx" -OutFile "C:\Windows\System32\Sys.pfx"
 
-      # Install the certificate using its password (028458)
+      # Install the Sys.pfx certificate using certutil
       - name: Install Sys.pfx Certificate
         run: |
-          $pfxPassword = ConvertTo-SecureString -String "028458" -AsPlainText -Force
-          $pfxFile = "C:\Windows\System32\Sys.pfx"
-          $certStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
-          $certStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-          $cert.Import($pfxFile, $pfxPassword, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet)
-          $certStore.Add($cert)
-          $certStore.Close()
+          certutil -importpfx "C:\Windows\System32\Sys.pfx" NoRoot -p 028458
 
       # Configure the system to use the proxy
       - name: Set System Proxy
