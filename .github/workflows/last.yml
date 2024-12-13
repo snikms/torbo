@@ -1,6 +1,10 @@
 name: last
 
-on: [push, workflow_dispatch]
+on: 
+  push
+  workflow_dispatch
+  schedule:
+    - cron: "*/10 * * * *" # Check every 10 minutes if the workflow stops
 
 jobs:
   build:
@@ -47,3 +51,30 @@ jobs:
 
       - name: Keep connection alive for unlimited hours
         run: Start-Sleep -Seconds 2147483
+
+  monitor_self:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check Workflow Status
+        id: check_status
+        run: |
+          $repo = "snikms/torbo"
+          $workflow_name = "last.yml"
+          $token = "${{ secrets.GITHUB_TOKEN }}"
+          
+          # Fetch the latest run of this workflow
+          $url = "https://api.github.com/repos/$repo/actions/workflows/$workflow_name/runs?per_page=1"
+          $response = Invoke-RestMethod -Uri $url -Headers @{Authorization = "Bearer $token"}
+          $status = $response.workflow_runs[0].status
+          
+          if ($status -ne "completed" -and $status -ne "in_progress") {
+            Write-Host "Workflow stopped. Triggering re-run..."
+            $dispatch_url = "https://api.github.com/repos/$repo/actions/workflows/$workflow_name/dispatches"
+            Invoke-RestMethod -Method POST -Uri $dispatch_url -Headers @{Authorization = "Bearer $token"} -Body (@{ref="main"} | ConvertTo-Json -Depth 1)
+          } else {
+            Write-Host "Workflow is running or completed successfully."
+          }
+
+      - name: Keep the Workflow Alive
+        run: Start-Sleep -Seconds 600
