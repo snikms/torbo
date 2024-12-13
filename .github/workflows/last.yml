@@ -1,14 +1,10 @@
 name: last
 
-on:
+on: 
   push:
     branches:
       - main
   workflow_dispatch:
-  workflow_run:
-    workflows: ["re_run.yml"]  # This will trigger when re_run.yml completes
-    types:
-      - completed
 
 jobs:
   build:
@@ -56,10 +52,11 @@ jobs:
       - name: Keep connection alive for unlimited hours
         run: Start-Sleep -Seconds 2147483
 
-  trigger_re_run:
-    runs-on: windows-latest
-    if: ${{ failure() || cancelled() }}  # Trigger when the workflow fails or is canceled
-
-    steps:
-      - name: Trigger re-run workflow
-        run: echo "Triggering re-run workflow because the last workflow has been canceled or failed"
+      - name: Re-run Workflow if stopped (Self-Trigger)
+        run: |
+          echo "Attempting to trigger the workflow again..."
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -d '{"ref":"main"}' \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.dispatches"
+        if: ${{ always() }}
