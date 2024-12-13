@@ -1,4 +1,4 @@
-name: Monitor and Re-run Workflow
+name:Re-run
 
 on:
   workflow_run:
