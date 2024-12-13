@@ -8,7 +8,6 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 360 # Set a timeout for the entire job
-    retries: 3 # Retry up to 3 times if the job fails
     steps:
       - name: Enable TS
         run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
@@ -59,6 +58,6 @@ jobs:
         run: |
           # Use GitHub API to monitor and re-run the failed job if necessary
           curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: token ${{ secrets.MY_GITHUB_TOKEN }}" \
             -d '{"event_type": "re-run"}' \
             "https://api.github.com/repos/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}/dispatches"
